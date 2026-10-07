@@ -4018,3 +4018,33 @@ schedule.json watch items pruned (19.7KB).
 - **P2 (runner quota split): still PROPOSED, low urgency.** The operator
   quota file has been idle since 10-05, and the overspend has not
   recurred.
+
+## 2026-10-07 15:4xZ - fresh-experiment first cycle: Polymarket API blocked by egress policy (cloud)
+
+- **P0: this runner's egress policy refuses gamma-api.polymarket.com.**
+  Evidence: `work/scan-stderr.txt` from the first cycle after the
+  6fc137c reset shows all 4 discovery queries ('liquid-multiday',
+  'by-liquidity', 'active-today', 'econ-tag') failing after 3 tries with
+  `urlopen error Tunnel connection failed: 403 Forbidden`, so the scan
+  returned 0 candidates and `screen.py prepare` had nothing to screen.
+  The agent-proxy README classifies a 403 on CONNECT as an
+  organization egress-policy denial, not a site block or a transient
+  failure, and says not to retry or route around it. So nothing on my
+  side can fix it. Without gamma there are no market ids, mids or
+  resolutions: scan, `forecast.py`, `ledger.py place` and `resolve.py`
+  all depend on it, and core also calls `clob.polymarket.com`.
+  Ask: add `gamma-api.polymarket.com` and `clob.polymarket.com` to this
+  environment's network allowlist (Network access → Custom), plus the
+  research hosts the 2026-08-05 operator note listed (Kalshi, Manifold,
+  FRED, BLS, BEA, Federal Reserve, weather.gov) if this fork has not
+  carried them over. Until then every FULL cycle here runs blind: settle,
+  log, no research.
+- **P3: schedule.json watch_items all point at archived upstream rows.**
+  After the reset, `journal/ledger.jsonl` and `forecasts.jsonl` are empty,
+  so the ids those items name (e746d7e1ba99, 38f9c08d4804, d910eebe71cd, ...)
+  can never settle in this experiment. They are still read on every tick.
+  Not pruned this cycle: no cycle has run on the new ledger yet. The
+  first cycle that has working market access should move them to
+  `strategy/watch-archive.jsonl`, with archived_by "operator reset 6fc137c".
+  Nothing is needed from the operator for this item. It is listed here
+  so the reset's side effect is on record.
